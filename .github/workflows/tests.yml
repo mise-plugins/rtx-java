@@ -1,11 +1,11 @@
-name: asdf-java Tests
+name: rtx-java Tests
 on:
   push:
     branches:
-    - master
+    - main
   pull_request:
     branches:
-    - master
+    - main
 jobs:
   build:
     runs-on: ${{ matrix.os }}
