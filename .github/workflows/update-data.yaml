@@ -28,5 +28,5 @@ jobs:
         git config --local user.name "rtx"
         git add data/*.tsv
         git clean -f
-        git commit -m "Update Java release data"
+        git commit -m "Update Java release data" || true
         git push
