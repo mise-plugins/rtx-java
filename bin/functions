@@ -2,7 +2,7 @@
 set -x
 set -e
 
-CACHE_DIR="${TMPDIR:-/tmp}rtx-java.cache"
+CACHE_DIR="${TMPDIR:-/tmp}/rtx-java.cache"
 
 if [ ! -d "${CACHE_DIR}" ]
 then
