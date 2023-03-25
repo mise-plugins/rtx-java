@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -x
 set -e
 set -Euo pipefail
 
@@ -46,7 +47,7 @@ do
 			fetch_metadata "$OS" "$ARCH" "$RELEASE_TYPE"
 		done
 		cat "${DATA_DIR}/jdk-${OS}-${ARCH}"-*.json | jq -s 'add' > "${DATA_DIR}/jdk-${OS}-${ARCH}-all.json"
-		ln -s "jdk-${OS}-${ARCH}-ga.json" "${DATA_DIR}/jdk-${OS}-${ARCH}.json"
+		ln -fs "jdk-${OS}-${ARCH}-ga.json" "${DATA_DIR}/jdk-${OS}-${ARCH}.json"
 	done
 done
 
@@ -59,4 +60,10 @@ for FILE in "${DATA_DIR}"/*.json
 do
 	TSV_FILE="$(basename "${FILE}" .json).tsv"
 	jq -r "${RELEASE_QUERY}" "${FILE}" | sort -V > "${DATA_DIR}/${TSV_FILE}"
+done
+rm "${DATA_DIR}"/*.json
+
+# copy aarch64 files to arm64
+for FILE in "${DATA_DIR}"/*-aarch64-*.tsv; do
+  cp "${FILE}" "${FILE/aarch64/arm64}"
 done

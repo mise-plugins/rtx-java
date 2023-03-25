@@ -33,3 +33,11 @@ Install a candidate listed from the previous command like this:
 Select an installed candidate for use like this:
 
 `rtx global java@adopt-openjdk-12`
+
+## Specify release type
+
+In `.rtx.toml` specify "ga" (default), "ea", or "all":
+
+```toml
+java = {version="latest", java_release_type="ga"}
+```

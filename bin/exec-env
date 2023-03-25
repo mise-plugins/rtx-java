@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 
-if [ -n "$ASDF_INSTALL_PATH" ]; then
-  export JAVA_HOME="$ASDF_INSTALL_PATH"
+if [ -n "$RTX_INSTALL_PATH" ]; then
+  export JAVA_HOME="$RTX_INSTALL_PATH"
 fi

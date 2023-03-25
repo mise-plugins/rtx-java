@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# shellcheck source=/dev/null
-source "${ASDF_DIR:-$HOME/.asdf}/lib/utils.bash"
-CACHE_DIR="${TMPDIR:-/tmp}/asdf-java.cache"
+set -euo pipefail
+set -x
+CACHE_DIR="${TMPDIR:-/tmp}rtx-java.cache"
 
 if [ ! -d "${CACHE_DIR}" ]
 then
@@ -15,14 +15,14 @@ case "${KERNEL_NAME}" in
             SHA256SUM="shasum -a 256"
             STAT="/usr/bin/stat"
             STAT_OPTS=('-f' '%c')
-            TEMP_DIR=$(/usr/bin/mktemp -dt asdf-java)
+            TEMP_DIR=$(/usr/bin/mktemp -dt rtx-java)
             ;;
     Linux)
            OS="linux"
            SHA256SUM="sha256sum"
            STAT="stat"
            STAT_OPTS=('-c' '%Z')
-           TEMP_DIR=$(mktemp -dp /tmp asdf-java.XXXXXXXX)
+           TEMP_DIR=$(mktemp -dp /tmp rtx-java.XXXXXXXX)
            ;;
     *) echo "Unknown operating system: ${KERNEL_NAME}"
        exit 1
@@ -52,10 +52,10 @@ function retrieve-release-data() {
     local cache_file="${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv"
     # shellcheck disable=SC2046
     if [[ ! -r "${cache_file}" ]] || (( $($STAT "${STAT_OPTS[@]}" "${cache_file}") <= $(date +%s) - 3600 )) ; then
-        local base_url="https://raw.githubusercontent.com/halcyon/asdf-java/master/data/jdk-${OS}-${ARCHITECTURE}"
+        # TODO: not this, just use the version in the repo and rely on rtx autoupdating
+        local base_url="https://raw.githubusercontent.com/jdxcode/rtx-java/master/data/jdk-${OS}-${ARCHITECTURE}"
         local url
-        case "$(get_asdf_config_value "java_release_type")" in
-            ga) url="$base_url-ga.tsv" ;;
+        case "${RTX_TOOL_OPTS__JAVA_RELEASE_TYPE:-}" in
             ea) url="$base_url-ea.tsv" ;;
             all) url="$base_url.tsv" ;;
             *) url="$base_url-ga.tsv" ;;
@@ -70,19 +70,15 @@ function list-all() {
     cut -d $'\t' -f 1 "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | uniq | tr '\n' ' '
 }
 
-function list-legacy-filenames() {
-    echo ".java-version"
-}
-
 function install {
     local release_data package_link package_filename checksum
     local -a dirs
 
     retrieve-release-data
 
-    release_data=$(grep "^${ASDF_INSTALL_VERSION}	" "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | tail -n 1)
+    release_data=$(grep "^${RTX_INSTALL_VERSION}	" "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | tail -n 1)
     if [[ -z "${release_data}" ]]; then
-        echo "Unknown release: ${ASDF_INSTALL_VERSION}"
+        echo "Unknown release: ${RTX_INSTALL_VERSION}"
         exit 1
     fi
 
@@ -113,81 +109,30 @@ function install {
 
     read -r -a dirs <<<"$(ls -d ./*/)"
     cd "${dirs[0]}" || return 1
-    if [ ! -d "${ASDF_INSTALL_PATH}" ]; then
-        mkdir -p "${ASDF_INSTALL_PATH}"
+    if [ ! -d "${RTX_INSTALL_PATH}" ]; then
+        mkdir -p "${RTX_INSTALL_PATH}"
     fi
 
     case ${OS} in
         macosx)
-            case ${ASDF_INSTALL_VERSION} in
+            case ${RTX_INSTALL_VERSION} in
                 zulu*)
-                    mv ./* "${ASDF_INSTALL_PATH}" 
-                    if [ "$(get_asdf_config_value "java_macos_integration_enable")" = "yes" ]; then
-                        local macOS_integration_path
-                        macOS_integration_path="$(dirname "$(dirname "$(dirname "$(absolute_dir_path "${ASDF_INSTALL_PATH}/bin/..")")")")"
-                        java_macos_integration_install "$macOS_integration_path"
-                    fi
+                    mv ./* "${RTX_INSTALL_PATH}"
                     ;;
                 liberica*)
-                    mv ./* "${ASDF_INSTALL_PATH}"
-                    if [ "$(get_asdf_config_value "java_macos_integration_enable")" = "yes" ]; then
-                        echo "The ZIP packages of liberica do not contain the required files (Info.plist and the MacOS folder) to make /usr/libexec/java_home work correctly. You need the .pkg version to get those files."
-                    fi
+                    mv ./* "${RTX_INSTALL_PATH}"
                     ;;
                 *)
-                    mv Contents/Home/* "${ASDF_INSTALL_PATH}" 
-                    if [ "$(get_asdf_config_value "java_macos_integration_enable")" = "yes" ]; then
-                        local macOS_integration_path
-                        macOS_integration_path="$(absolute_dir_path ".")"
-                        java_macos_integration_install "$macOS_integration_path"
-                    fi
+                    mv Contents/Home/* "${RTX_INSTALL_PATH}"
                     ;;
             esac ;;
-        *) mv ./* "${ASDF_INSTALL_PATH}" ;;
+        *) mv ./* "${RTX_INSTALL_PATH}" ;;
     esac
-}
-
-function uninstall {
-    case ${OS} in
-        macosx)
-        if [ -z "${ASDF_INSTALL_VERSION}" ]; then 
-                true
-        else 
-            if [ "$(get_asdf_config_value "java_macos_integration_enable")" = "yes" ]; then
-                    java_macos_integration_remove
-            fi
-        fi
-    esac
-    rm -rf "${ASDF_INSTALL_PATH}"
-}
-
-function java_macos_integration_remove {
-    printf "Removing the integration with /usr/libexec/java_home needs root permission to delete the folder at /Library/Java/JavaVirtualMachines/%s\n" "${ASDF_INSTALL_VERSION}"
-    sudo rm -rf "/Library/Java/JavaVirtualMachines/${ASDF_INSTALL_VERSION}"
-}
-
-function java_macos_integration_install {
-    local macOS_files_path
-    macOS_files_path="$1"
-    printf "Integrating with /usr/libexec/java_home needs root permission for it to create folders under /Library/Java/JavaVirtualMachines\n"
-    sudo mkdir -p "/Library/Java/JavaVirtualMachines/${ASDF_INSTALL_VERSION}/Contents"
-    sudo cp -R "${macOS_files_path}/Contents/MacOS" "/Library/Java/JavaVirtualMachines/${ASDF_INSTALL_VERSION}/Contents/"
-    sudo cp -R "${macOS_files_path}/Contents/Info.plist" "/Library/Java/JavaVirtualMachines/${ASDF_INSTALL_VERSION}/Contents/"
-    sudo ln -s "${ASDF_INSTALL_PATH}" "/Library/Java/JavaVirtualMachines/${ASDF_INSTALL_VERSION}/Contents/Home"
-}
-
-function absolute_dir_path {
-    local absolute_path
-    absolute_path="$( cd -P "$( dirname "$1" )" && pwd )"
-    echo "$absolute_path"
 }
 
 case "$(basename "${0}")" in
     list-all) list-all
               ;;
-    list-legacy-filenames) list-legacy-filenames
-                           ;;
     install) install
              ;;
-    uninstall) uninstall ;;
 esac
