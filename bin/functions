@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-set -euo pipefail
 set -x
+set -e
+
 CACHE_DIR="${TMPDIR:-/tmp}rtx-java.cache"
 
 if [ ! -d "${CACHE_DIR}" ]
@@ -53,7 +54,7 @@ function retrieve-release-data() {
     # shellcheck disable=SC2046
     if [[ ! -r "${cache_file}" ]] || (( $($STAT "${STAT_OPTS[@]}" "${cache_file}") <= $(date +%s) - 3600 )) ; then
         # TODO: not this, just use the version in the repo and rely on rtx autoupdating
-        local base_url="https://raw.githubusercontent.com/jdxcode/rtx-java/master/data/jdk-${OS}-${ARCHITECTURE}"
+        local base_url="https://raw.githubusercontent.com/rtx-plugins/rtx-java/main/data/jdk-${OS}-${ARCHITECTURE}"
         local url
         case "${RTX_TOOL_OPTS__JAVA_RELEASE_TYPE:-}" in
             ea) url="$base_url-ea.tsv" ;;
@@ -67,7 +68,10 @@ function retrieve-release-data() {
 
 function list-all() {
     retrieve-release-data
-    cut -d $'\t' -f 1 "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | uniq | tr '\n' ' '
+    local releases
+    releases="$(cut -d $'\t' -f 1 "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | uniq)"
+    echo -n "${releases}" | tr '\n' ' '
+    echo -n "${releases}" | grep "openjdk" | sed 's/^openjdk-//g' | tr '\n' ' '
 }
 
 function install {
@@ -76,6 +80,10 @@ function install {
 
     retrieve-release-data
 
+    # if install version starts with a digit
+    if [[ "${RTX_INSTALL_VERSION}" =~ ^[0-9] ]]; then
+        RTX_INSTALL_VERSION="openjdk-${RTX_INSTALL_VERSION}"
+    fi
     release_data=$(grep "^${RTX_INSTALL_VERSION}	" "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | tail -n 1)
     if [[ -z "${release_data}" ]]; then
         echo "Unknown release: ${RTX_INSTALL_VERSION}"
