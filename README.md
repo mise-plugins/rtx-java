@@ -1,6 +1,7 @@
 # rtx-java
 
-[![Build status](https://github.com/rtx-plugins/rtx-java/workflows/rtx-java%20Tests/badge.svg?branch=main)](https://github.com/rtx-plugins/rtx-java/actions?query=workflow%3A%rtx-java+Tests%22+branch%main) [![Join the chat at https://gitter.im/asdf-java/community](https://badges.gitter.im/asdf-java/community.svg)](https://gitter.im/asdf-java/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build status](https://github.com/rtx-plugins/rtx-java/workflows/rtx-java%20Tests/badge.svg?branch=main)](https://github.com/rtx-plugins/rtx-java/actions?query=workflow%3A%rtx-java+Tests%22+branch%main)
+[![Discord](https://img.shields.io/discord/1066429325269794907?color=%23738ADB)](https://discord.gg/mABnUDvP57)
 
 [Java](https://www.java.com/en/) plugin for the [rtx](https://github.com/jdxcode/rtx) version manager.
 
