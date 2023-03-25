@@ -3,20 +3,19 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '30 */8 * * *'
+  push:
+    branches:
+      - update-data
 jobs:
   update:
     if: github.repository == 'rtx-plugins/rtx-java'
     runs-on: 'ubuntu-latest'
     steps:
-    - uses: actions/checkout@v2
-    - uses: mstksg/get-package@v1
+    - uses: actions/checkout@v3
+    - uses: jdxcode/rtx-action@v1
       with:
-        apt-get: curl
-    - name: Install jq 1.6
-      run: |
-        curl -Lo jq https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
-        chmod +x jq
-        jq --version
+        tool_versions: |
+          jq 1.6
     - name: Run update script
       env:
         GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -29,8 +28,5 @@ jobs:
         git config --local user.name "rtx"
         git add data/*.tsv
         git clean -f
-        git commit -m "Update Java release data" || true
-    - name: Push changes
-      uses: ad-m/github-push-action@master
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        git commit -m "Update Java release data"
+        git push
