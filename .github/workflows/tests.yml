@@ -19,7 +19,6 @@ jobs:
     - uses: jdxcode/rtx-action@v1
       with:
         tool_versions: |
-          java latest
           jq 1.6
           shellcheck 0.9.0
       env:
@@ -31,4 +30,6 @@ jobs:
         shellcheck ./update_data.bash
     - name: Run tests
       run: |
+        rtx plugins link .
+        rtx i java@lts
         rtx x -- java -version
