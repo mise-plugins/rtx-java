@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -e
 
+if [ "${RTX_TRACE:-}" == "1" ]; then
+    set -x
+fi
+
 CACHE_DIR="${TMPDIR:-/tmp}/rtx-java.cache"
 
 if [ ! -d "${CACHE_DIR}" ]
