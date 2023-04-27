@@ -5,13 +5,6 @@ if [ "${RTX_TRACE:-}" == "1" ]; then
     set -x
 fi
 
-CACHE_DIR="${TMPDIR:-/tmp}/rtx-java.cache"
-
-if [ ! -d "${CACHE_DIR}" ]
-then
-    mkdir -p "${CACHE_DIR}"
-fi
-
 KERNEL_NAME="$(uname -s)"
 case "${KERNEL_NAME}" in
     Darwin)
@@ -19,20 +12,16 @@ case "${KERNEL_NAME}" in
             SHA256SUM="shasum -a 256"
             STAT="/usr/bin/stat"
             STAT_OPTS=('-f' '%c')
-            TEMP_DIR=$(/usr/bin/mktemp -dt rtx-java)
             ;;
     Linux)
            OS="linux"
            SHA256SUM="sha256sum"
            STAT="stat"
            STAT_OPTS=('-c' '%Z')
-           TEMP_DIR=$(mktemp -dp /tmp rtx-java.XXXXXXXX)
            ;;
     *) echo "Unknown operating system: ${KERNEL_NAME}"
        exit 1
 esac
-
-trap 'test -d "${TEMP_DIR}" && rm -rf "${TEMP_DIR}"' EXIT
 
 MACHINE="$(uname -m)"
 case "${MACHINE}" in
@@ -53,7 +42,7 @@ function check-unzip() {
 }
 
 function retrieve-release-data() {
-    local cache_file="${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv"
+    local cache_file="${RTX_CACHE_DIR}/java/releases-${OS}-${ARCHITECTURE}.tsv"
     # shellcheck disable=SC2046
     if [[ ! -r "${cache_file}" ]] || (( $($STAT "${STAT_OPTS[@]}" "${cache_file}") <= $(date +%s) - 3600 )) ; then
         # TODO: not this, just use the version in the repo and rely on rtx autoupdating
@@ -65,6 +54,7 @@ function retrieve-release-data() {
             *) url="$base_url-ga.tsv" ;;
         esac
 
+        mkdir -p "${RTX_CACHE_DIR}/java"
         curl -s -f --compressed -L "${url}" -o "${cache_file}"
     fi
 }
@@ -72,7 +62,7 @@ function retrieve-release-data() {
 function list-all() {
     retrieve-release-data
     local releases
-    releases="$(cut -d $'\t' -f 1 "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | uniq)"
+    releases="$(cut -d $'\t' -f 1 "${RTX_CACHE_DIR}/java/releases-${OS}-${ARCHITECTURE}.tsv" | uniq)"
     echo -n "${releases}" | tr '\n' ' '
     echo -n "${releases}" | grep "openjdk" | sed 's/^openjdk-//g' | tr '\n' ' '
 }
@@ -87,7 +77,7 @@ function install {
     if [[ "${RTX_INSTALL_VERSION}" =~ ^[0-9] ]]; then
         RTX_INSTALL_VERSION="openjdk-${RTX_INSTALL_VERSION}"
     fi
-    release_data=$(grep "^${RTX_INSTALL_VERSION}	" "${CACHE_DIR}/releases-${OS}-${ARCHITECTURE}.tsv" | tail -n 1)
+    release_data=$(grep "^${RTX_INSTALL_VERSION}	" "${RTX_CACHE_DIR}/java/releases-${OS}-${ARCHITECTURE}.tsv" | tail -n 1)
     if [[ -z "${release_data}" ]]; then
         echo "Unknown release: ${RTX_INSTALL_VERSION}"
         exit 1
@@ -101,7 +91,7 @@ function install {
         check-unzip
     fi
 
-    cd "${TEMP_DIR}" || return 1
+    cd "${RTX_DOWNLOAD_PATH}" || return 1
     if ! curl -LO -# -w "${package_filename}\n" "${package_link}"; then
         exit 1
     fi
