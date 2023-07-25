@@ -31,5 +31,5 @@ jobs:
     - name: Run tests
       run: |
         rtx plugins link . -f
-        rtx i java@lts
+        rtx i -f java@lts
         rtx x -- java -version
