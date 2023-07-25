@@ -30,6 +30,6 @@ jobs:
         shellcheck ./update_data.bash
     - name: Run tests
       run: |
-        rtx plugins link .
+        rtx plugins link . -f
         rtx i java@lts
         rtx x -- java -version
